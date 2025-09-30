@@ -1,0 +1,18 @@
+{
+  "ta_url": "https://api.staging.c2pa.ssl.com/v1/timestamp/rsa",
+  "vendor": "my-org",
+  "private_key": "mykey.key",
+  "sign_cert": "mycert.pem",
+  "sign_cert_chain": ["C2PA-TRUST-BUNDLE.pem"],
+  "alg": "ps256",
+  "claim_generator": "my-signer/1.0",
+  "assertions": [
+    {
+      "label": "stds.iptc.photo-metadata",
+      "data": {
+        "title": "Example",
+        "description": "Example signed by c2patool"
+      }
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+# Node / JS
+node_modules/
+client/node_modules/
+client/dist/
+
+# OS / editor
+.DS_Store
+
+# Logs and temp
+*.log
+c2pa_log_*.txt
+tmp_out.txt
+
+# Generated images
+signed_*.jpg
+signed_*.jpeg
+signed_*.png
+tamper_*.jpg
+tamper_*.jpeg
+tamper_*.png
+uploads/
+
+# Secrets (do NOT commit private keys)
+mykey.key
+mycert.pem
+
+# Git
+.env

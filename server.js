@@ -48,6 +48,11 @@ function parseBody(req) {
   });
 }
 
+function hasDocker() {
+  const probe = spawnSync('docker', ['--version'], { encoding: 'utf8' });
+  return probe.status === 0;
+}
+
 function ensureDockerImage() {
   const inspect = spawnSync('docker', ['image', 'inspect', DOCKER_IMAGE], { encoding: 'utf8' });
   if (inspect.status === 0) return;
@@ -164,10 +169,37 @@ const server = http.createServer(async (req, res) => {
     return json(res, 200, { ok: true, message: 'c2pa demo server' });
   }
 
+  if (req.method === 'GET' && req.url === '/api/diag') {
+    // Simple diagnostics to help deployment issues
+    const local = hasLocalC2pa();
+    const docker = hasDocker();
+    const cwd = WORKDIR;
+    const manifestPath = path.isAbsolute(MANIFEST) ? MANIFEST : path.join(WORKDIR, MANIFEST);
+    const trustPath = path.isAbsolute(TRUST_BUNDLE) ? TRUST_BUNDLE : path.join(WORKDIR, TRUST_BUNDLE);
+    const statSafe = p => {
+      try { const s = fs.statSync(p); return { exists: true, size: s.size }; } catch { return { exists: false }; }
+    };
+    const version = local ? (spawnSync('c2patool', ['--version'], { encoding: 'utf8' }).stdout || '').trim() : '';
+    return json(res, 200, {
+      ok: true,
+      modeEnv: MODE || '',
+      hasLocalC2pa: local,
+      hasDocker: docker,
+      cwd,
+      manifest: { path: MANIFEST, resolved: manifestPath, ...statSafe(manifestPath) },
+      trustBundle: { path: TRUST_BUNDLE, resolved: trustPath, ...statSafe(trustPath) },
+      c2patoolVersion: version,
+    });
+  }
+
   if (req.method === 'POST' && req.url === '/api/sign') {
     try {
       ensureUploadsDir();
-      if (!(MODE === 'local' || hasLocalC2pa())) ensureDockerImage();
+      const localOK = (MODE === 'local' || hasLocalC2pa());
+      if (!localOK) {
+        if (!hasDocker()) return json(res, 500, { ok: false, error: 'No local c2patool found and Docker is not available. Install c2patool on host or enable Docker.' });
+        ensureDockerImage();
+      }
       const body = await parseBody(req);
       const { imageName, imageData } = body || {};
       const buf = dataUrlToBuffer(imageData);
@@ -196,7 +228,11 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'POST' && req.url === '/api/verify') {
     try {
       ensureUploadsDir();
-      if (!(MODE === 'local' || hasLocalC2pa())) ensureDockerImage();
+      const localOK = (MODE === 'local' || hasLocalC2pa());
+      if (!localOK) {
+        if (!hasDocker()) return json(res, 500, { ok: false, error: 'No local c2patool found and Docker is not available. Install c2patool on host or enable Docker.' });
+        ensureDockerImage();
+      }
       const body = await parseBody(req);
       const { imageName, imageData } = body || {};
       const buf = dataUrlToBuffer(imageData);

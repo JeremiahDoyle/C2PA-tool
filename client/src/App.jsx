@@ -45,12 +45,15 @@ export default function App() {
   }
 
   const onVerify = async () => {
-    if (!src.dataUrl) return
+    // Prefer verifying the signed image if available; fallback to original
+    const verifyDataUrl = signed.dataUrl || src.dataUrl
+    const verifyName = signed.name || src.name
+    if (!verifyDataUrl) return
     setBusy(true)
     setStatus('Verifying...')
     setVerifyRes(null)
     try {
-      const res = await verifyImage({ name: src.name, dataUrl: src.dataUrl })
+      const res = await verifyImage({ name: verifyName, dataUrl: verifyDataUrl })
       setVerifyRes(res)
       setStatus(res.ok ? 'Verification PASS' : 'Verification FAIL')
     } catch (e) {
@@ -119,4 +122,3 @@ export default function App() {
     </div>
   )
 }
-
